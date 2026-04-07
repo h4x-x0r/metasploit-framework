@@ -128,11 +128,10 @@ class MetasploitModule < Msf::Auxiliary
   end
 
   def on_relay_success(relay_connection:, relay_identity:)
-    target_ip = relay_connection.target.ip
     case datastore['MODE']
     when 'AUTO'
       cert_template = relay_identity.end_with?('$') ? ['DomainController', 'Machine'] : ['User']
-      retrieve_certs(target_ip, relay_connection, relay_identity, cert_template)
+      retrieve_certs(relay_connection, relay_identity, cert_template)
     when 'ALL', 'QUERY_ONLY'
       cert_templates = get_cert_templates(relay_connection)
       unless cert_templates.nil? || cert_templates.empty?
