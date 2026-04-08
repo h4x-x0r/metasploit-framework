@@ -105,23 +105,25 @@ class MetasploitModule < Msf::Auxiliary
 
   def run_host(target_ip)
     validate
-    if datastore['HTTP::Auth'] == 'ntlm' || datastore['HTTP::Auth'] == 'auto'
-      queried_domain = pull_domain(target_ip, target_uri)
-      if queried_domain.nil?
-        fail_with(Failure::UnexpectedReply, 'Failed to automatically populate DOMAIN; please do so manually and retry')
-      end
 
-      # The queried_domain value is coming is as a UTF-16LE string encoded in ASCII 8-bit.
-      # We need to normalize it so we can do the string compares later
-      datastore_domain = datastore['DOMAIN']
-      queried_domain.force_encoding('UTF-16LE')
-      queried_domain = queried_domain.encode(datastore_domain.encoding)
-
-      if datastore['DOMAIN'] != 'WORKSTATION' && queried_domain != datastore_domain
-        fail_with(Failure::UnexpectedReply, "Server claims to be a member of #{queried_domain} domain and does not match the datastore domain entry #{datastore['DOMAIN']}")
-      end
-      connection_identity = queried_domain + '\\' + datastore['HttpUsername']
+    queried_domain = pull_domain(target_ip, target_uri)
+    if queried_domain.nil?
+      fail_with(Failure::UnexpectedReply, 'Failed to automatically populate DOMAIN; please do so manually and retry')
     end
+
+    # The queried_domain value is coming is as a UTF-16LE string encoded in ASCII 8-bit.
+    # We need to normalize it so we can do the string compares later
+    datastore_domain = datastore['DOMAIN']
+    queried_domain.force_encoding('UTF-16LE')
+    queried_domain = queried_domain.encode(datastore_domain.encoding)
+
+    # kerberos requires DOMAIN be the FQDN but in other cases check if DOMAIN is set to something other than the NETBIOS
+    # domain name that was returned from the NTLM handshake which would imply an operator error
+    if datastore['HTTP::Auth'] != 'kerberos' && datastore['DOMAIN'].present? && datastore['DOMAIN'] != 'WORKSTATION' && queried_domain != datastore_domain
+      fail_with(Failure::UnexpectedReply, "Server claims to be a member of #{queried_domain} domain and does not match the datastore domain entry #{datastore['DOMAIN']}")
+    end
+    connection_identity = queried_domain + '\\' + datastore['HttpUsername']
+
     http_client = connect(
       {
         'rhost' => target_ip,
