@@ -9,6 +9,38 @@ RSpec.describe Msf::Post::File do
     klass.allocate
   end
 
+  describe '#mkdir' do
+    let(:path) { '/tmp/test_dir' }
+
+    subject do
+      described_mixin = described_class
+      klass = Class.new do
+        include described_mixin
+        attr_accessor :session
+        def cmd_exec(_cmd); ''; end
+        def vprint_status(_msg); end
+        def register_dir_for_cleanup(_path); end
+      end
+      obj = klass.allocate
+      obj.session = double('session', type: 'shell', platform: 'linux')
+      obj
+    end
+
+    before(:each) do
+      allow(subject).to receive(:register_dir_for_cleanup)
+    end
+
+    it 'registers the directory for cleanup by default' do
+      subject.mkdir(path)
+      expect(subject).to have_received(:register_dir_for_cleanup).with(path)
+    end
+
+    it 'does not register the directory for cleanup when cleanup is false' do
+      subject.mkdir(path, cleanup: false)
+      expect(subject).not_to have_received(:register_dir_for_cleanup)
+    end
+  end
+
   describe '#_can_echo?' do
     [
       # printable examples
