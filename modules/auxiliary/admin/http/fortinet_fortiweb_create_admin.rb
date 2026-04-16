@@ -77,7 +77,7 @@ class MetasploitModule < Msf::Auxiliary
     j = JSON.parse(res.body)
 
     # Tested against vulnerable FortiWeb versions 8.0.1, 7.4.8, 6.4.3, and 6.3.9
-    return Exploit::CheckCode::Appears if j.dig('results', 'errcode') == -56
+    return Exploit::CheckCode::Appears('Authentication bypass succeeded on FortiWeb') if j.dig('results', 'errcode') == -56
 
     Exploit::CheckCode::Unknown('Unexpected JSON results')
   rescue JSON::ParserError
