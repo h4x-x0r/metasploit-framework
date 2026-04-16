@@ -7,7 +7,6 @@ class MetasploitModule < Msf::Auxiliary
   include Msf::Exploit::Remote::HttpClient
   include Msf::Auxiliary::Report
   prepend Msf::Exploit::Remote::AutoCheck
-  CheckCode = Exploit::CheckCode
 
   def initialize(info = {})
     super(
@@ -93,12 +92,6 @@ class MetasploitModule < Msf::Auxiliary
     end
 
     Exploit::CheckCode::Detected("QConvergeConsole detected (version #{version})")
-  rescue ::Rex::ConnectionRefused,
-         ::Rex::HostUnreachable,
-         ::Rex::ConnectionTimeout,
-         ::Rex::ConnectionError => e
-    vprint_error("Connection error: #{e.class}")
-    return Exploit::CheckCode::Unknown('Connection failed')
   end
 
   def run
@@ -126,5 +119,13 @@ class MetasploitModule < Msf::Auxiliary
 
     path = store_loot('qconvergeconsole.file', 'application/octet-stream', datastore['RHOSTS'], res.body, datastore['TARGET_FILE'], 'File retrieved through QConvergeConsole path traversal (CVE-2025-6793).')
     print_status("File saved as loot: #{path}")
+
+    report_service(
+      host: rhost,
+      port: rport,
+      proto: 'tcp',
+      name: 'https',
+      info: 'Marvell QConvergeConsole'
+    )
   end
 end
